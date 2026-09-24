@@ -18,7 +18,7 @@ class ComTam6NightsGame:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("ComTam6NightsGame")
+        self.root.title("ComTam6NightsGame v1.1.0")
         self.root.configure(bg=self.BG)
         self.root.minsize(980, 760)
         self.center_window(1100, 800)
@@ -48,9 +48,19 @@ class ComTam6NightsGame:
             ("Chìa khóa rỉ sét mở cửa hầm bí mật", "Dữ liệu camera ẩn trong phòng thu tiền", "Xác định hầm chứa quỹ đen của tổ chức", 150, -18),
             ("Danh sách quan chức bị tha hóa nhận hối lộ", "Mẫu DNA chứng minh tội phạm trực tiếp", "Hoàn thiện hồ sơ đại án đủ sức vây bắt", 200, -20)
         ]
+
+        self.achievement_database = {
+            "Ach_1": ("Bậc Thầy Trinh Sát", "Bắt gọn trùm Kiều Lương Tâm (True Ending 6)."),
+            "Ach_2": ("Vua Cơm Tấm", "Nâng cấp Nước Mắm Bí Truyền lên cấp tối đa (Cấp 3)."),
+            "Ach_3": ("Thám Tử Học Thức", "Thực hiện thành công ít nhất 3 lượt suy luận trên Sơ Đồ Tư Duy."),
+            "Ach_4": ("Mình Đồng Da Sắt", "Trải qua 6 đêm mà không bao giờ mua Áo Giáp Chống Đạn."),
+            "Ach_5": ("Đại Gia Phố Cổ", "Tích lũy số vốn đạt từ $1000 trở lên."),
+            "Ach_6": ("Thần Thoại Endings", "Khám phá trọn vẹn toàn bộ 8/8 Kết cục của game.")
+        }
         
         self.save_file = "comtam_6nights_endings.json"
         self.unlocked_endings = set()
+        self.unlocked_achievements = set()
         self.load_endings()
         
         self.reset_game_data()
@@ -62,12 +72,57 @@ class ComTam6NightsGame:
                 with open(self.save_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     self.unlocked_endings = set(data.get("endings", []))
+                    self.unlocked_achievements = set(data.get("achievements", []))
             except:
                 self.unlocked_endings = set()
+                self.unlocked_achievements = set()
 
     def save_endings(self):
         with open(self.save_file, "w", encoding="utf-8") as f:
-            json.dump({"endings": list(self.unlocked_endings)}, f, ensure_ascii=False, indent=4)
+            json.dump({
+                "endings": list(self.unlocked_endings),
+                "achievements": list(self.unlocked_achievements)
+            }, f, ensure_ascii=False, indent=4)
+
+    def check_achievements(self):
+        new_unlocked = []
+
+        if "Ending 6" in self.unlocked_endings and "Ach_1" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_1")
+            new_unlocked.append(self.achievement_database["Ach_1"][0])
+
+        if self.recipe_level >= 3 and "Ach_2" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_2")
+            new_unlocked.append(self.achievement_database["Ach_2"][0])
+
+        if getattr(self, "deduction_count", 0) >= 3 and "Ach_3" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_3")
+            new_unlocked.append(self.achievement_database["Ach_3"][0])
+
+        if self.night >= 6 and not getattr(self, "bought_armor_ever", False) and "Ach_4" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_4")
+            new_unlocked.append(self.achievement_database["Ach_4"][0])
+
+        if self.money >= 1000 and "Ach_5" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_5")
+            new_unlocked.append(self.achievement_database["Ach_5"][0])
+
+        if len(self.unlocked_endings) >= 8 and "Ach_6" not in self.unlocked_achievements:
+            self.unlocked_achievements.add("Ach_6")
+            new_unlocked.append(self.achievement_database["Ach_6"][0])
+
+        if new_unlocked:
+            self.save_endings()
+            for name in new_unlocked:
+                messagebox.showinfo("🏆 THÀNH TỰU MỚI MỞ KHÓA!", f"Chúc mừng! Bạn đã đạt thành tựu danh giá:\n\n🏆 [{name}]", parent=self.root)
+
+    def show_achievements(self):
+        self.check_achievements()
+        text = f"TỔNG SỐ THÀNH TỰU ĐÃ ĐẠT: {len(self.unlocked_achievements)}/6\n\n"
+        for code, (title, desc) in self.achievement_database.items():
+            status = "✅ ĐÃ ĐẠT" if code in self.unlocked_achievements else "🔒 Chưa mở"
+            text += f"• {title} -> [{status}]\n  {desc}\n\n"
+        messagebox.showinfo("Thành Tựu & Huy Hiệu Phá Án", text)
 
     def center_window(self, width, height):
         sw = self.root.winfo_screenwidth()
@@ -127,6 +182,8 @@ class ComTam6NightsGame:
         self.orders_completed_tonight = 0
         self.recipe_level = 0
         self.serve_reward = 45
+        self.deduction_count = 0
+        self.bought_armor_ever = False
         
         self.has_light = False
         self.has_armor = False
@@ -138,6 +195,10 @@ class ComTam6NightsGame:
         self.has_jammer = False
         self.has_fake_docs = False
         self.has_magnifier = False
+        
+        self.has_wooden_tables = False
+        self.has_ceiling_fan = False
+        self.has_iron_door = False
         
         self.has_meo_chieu_tai = False
         self.has_bien_hieu_vip = False
@@ -190,21 +251,21 @@ class ComTam6NightsGame:
         tk.Label(top, text="ComTam6NightsGame", font=("Segoe UI", 32, "bold"), fg=self.GOLD, bg=self.BG).pack(pady=(10, 2))
         tk.Label(top, text="CREATOR BY: Q-HOUSETEAM", font=("Segoe UI", 12, "bold"), fg=self.CYAN, bg=self.BG).pack(pady=(0, 10))
         tk.Label(
-            top, text="Phiên bản tích hợp Sơ Đồ Tư Duy, NPC Cốt Truyện, Nước Mắm Bí Truyền 3 Cấp & 10 Manh Mối.",
+            top, text="Phiên bản v1.1.0: Trang Bị Nâng Cấp Quán, Thành Tựu & Huy Hiệu, Sơ Đồ Tư Duy.",
             font=("Segoe UI", 10), fg=self.MUTED, bg=self.BG, justify="center"
         ).pack(pady=(0, 10))
 
         card = tk.Frame(top, bg=self.PANEL, highlightbackground=self.BORDER, highlightthickness=1)
         card.pack(ipadx=30, ipady=10)
 
-        tk.Label(card, text="TÍNH NĂNG MỚI NÂNG CẤP", font=("Segoe UI", 12, "bold"), fg=self.GOLD, bg=self.PANEL).pack(pady=(0, 6))
+        tk.Label(card, text="TÍNH NĂNG MỚI BẢN v1.1.0", font=("Segoe UI", 12, "bold"), fg=self.GOLD, bg=self.PANEL).pack(pady=(0, 6))
         tk.Label(
             card,
-            text="• Sơ Đồ Tư Duy (Mind Map Deduction): Ghép nối manh mối thu thập được để khám phá liên kết.\n"
+            text="• Nâng Cấp Nội Thất Quán: Bàn Ghế Gỗ Sưa, Quạt Trần Công Nghiệp & Cửa Sắt Cuốn Cường Lực.\n"
+                 "• Hệ Thống Thành Tựu & Huy Hiệu: Mở khóa 6 danh hiệu trinh sát cao quý.\n"
+                 "• Sơ Đồ Tư Duy (Mind Map Deduction): Ghép nối manh mối thu thập được để giải mã câu đố.\n"
                  "• NPC Cốt Truyện Chi Tiết: Bà Cụ Bán Nước Mía, Cậu Bé Đánh Giày, Thiếu Úy Nam, Lĩnh 'Đen'...\n"
-                 "• Nước Mắm Bí Truyền 3 Cấp: Nâng cấp dần ($150->$65, $200->$70, $300->$90) cày lợi nhuận khủng.\n"
-                 "• Mèo Chiêu Tài & Khách VIP: Tăng tỷ lệ gặp ⭐ [KHÁCH VIP] nhận tiền bo cực lớn.\n"
-                 "• Đa kết cục phong phú (8 Endings): Mở khóa các Ending ẩn tùy thuộc Tiền & Nghi ngờ.",
+                 "• Đa kết cục phong phú (8 Endings): Khám phá các Ending ẩn tùy thuộc Tiền & Nghi ngờ.",
             font=("Segoe UI", 9), fg=self.TEXT, bg=self.PANEL, justify="left"
         ).pack()
 
@@ -213,6 +274,7 @@ class ComTam6NightsGame:
 
         self.make_button(buttons, "BẮT ĐẦU CHUYÊN ÁN", self.start_game, width=28, height=2, bg="#167c63").pack(pady=3)
         self.make_button(buttons, f"THƯ VIỆN ENDING ({len(self.unlocked_endings)}/8)", self.show_endings, width=28, height=2, bg="#2b6cb0").pack(pady=3)
+        self.make_button(buttons, f"THÀNH TỰU & HUY HIỆU ({len(self.unlocked_achievements)}/6)", self.show_achievements, width=28, height=2, bg="#d97706").pack(pady=3)
         self.make_button(buttons, "ĐÊM 0 - HUẤN LUYỆN", self.start_night_0_tutorial, width=28, height=2, bg="#3b4654").pack(pady=3)
         self.make_button(buttons, "THOÁT GAME", self.root.destroy, width=28, height=2, bg="#9c3d3d").pack(pady=3)
 
@@ -252,13 +314,13 @@ class ComTam6NightsGame:
              "• Nhấn 'NHẬN GÓI HÀNG NGẦM' để cất vào khoang bí mật dưới gầm bàn và lấy tiền công.\n"
              "• Cẩn thận: Nếu khoang bí mật bị đầy mà vẫn nhận hàng, gói hàng sẽ rơi ra ngoài khiến Độ nghi ngờ +40%!"),
 
-            ("Bài 4: Khách VIP & Nước Mắm Bí Truyền",
+            ("Bài 4: Khách VIP, Nước Mắm Bí Truyền & Trang Bị Quán",
              "• Nâng cấp Nước Mắm Bí Truyền qua 3 cấp ($150->$65, $200->$70, $300->$90) để tăng thu nhập mỗi suất.\n"
-             "• Trang bị 'Mèo Chiêu Tài' (+35% tỷ lệ VIP) và 'Biển Hiệu VIP' để thu hút ⭐ [KHÁCH VIP] bo nhiều tiền."),
+             "• Mua Bàn Ghế Gỗ Sưa, Quạt Trần Công Nghiệp & Cửa Sắt Cuốn Cường Lực để tăng doanh thu và an toàn."),
 
-            ("Bài 5: Sơ Đồ Tư Duy & Kẻ Chỉ Điểm",
+            ("Bài 5: Sơ Đồ Tư Duy & Thành Tựu Huy Hiệu",
              "• Mở 'SƠ ĐỒ TƯ DUY' trong ca trực để ghép nối các manh mối với nhau, nhận thưởng tiền & giảm Độ nghi ngờ.\n"
-             "• Kẻ Chỉ Điểm: Minigame giải mã từ đảo chữ trong 30s để thu thập manh mối khẩn cấp."),
+             "• Mở khóa 6 Thành Tựu Huy Hiệu danh giá tại Menu chính."),
 
             ("Bài 6: Thu Thập 10 Manh Mối & Đêm 6 Quyết Chiến",
              "• Thực hiện Nhiệm vụ Ban Ngày và Điều tra để thu thập đủ 10 Manh Mối.\n"
@@ -332,7 +394,7 @@ class ComTam6NightsGame:
         intro_text = (
             "Sương mù bao trùm con hẻm nhỏ. Dưới lớp tạp dề, bạn đảm nhận chiến dịch 6 đêm "
             "triệt phá đường dây tội phạm của Kiều Lương Tâm.\n\n"
-            "TÍNH NÂNG MỚI: Mở SƠ ĐỒ TƯ DUY để suy luận manh mối và gặp gỡ các NPC cốt truyện đặc biệt!"
+            "TÍNH NÂNG MỚI v1.1.0: Trang bị Quán Cơm, SƠ ĐỒ TƯ DUY và hệ thống THÀNH TỰU HUY HIỆU đã sẵn sàng!"
         )
         messagebox.showinfo("Lời khởi đầu", intro_text)
         self.next_customer()
@@ -349,7 +411,7 @@ class ComTam6NightsGame:
         top_row = tk.Frame(header, bg=self.PANEL)
         top_row.pack(fill="x", padx=15, pady=(8, 2))
 
-        self.lbl_title = tk.Label(top_row, text="ComTam6NightsGame (Q-HouseTeam)", font=("Segoe UI", 14, "bold"), fg=self.GOLD, bg=self.PANEL)
+        self.lbl_title = tk.Label(top_row, text="ComTam6NightsGame v1.1.0 (Q-HouseTeam)", font=("Segoe UI", 14, "bold"), fg=self.GOLD, bg=self.PANEL)
         self.lbl_title.pack(side="left")
 
         self.lbl_stats = tk.Label(top_row, text="", font=("Segoe UI", 10, "bold"), fg=self.CYAN, bg=self.PANEL)
@@ -513,6 +575,7 @@ class ComTam6NightsGame:
                 self.completed_deductions.add(rule_key)
                 self.money += reward_m
                 self.suspicion = max(0, self.suspicion + susp_red)
+                self.deduction_count += 1
 
                 messagebox.showinfo(
                     "SUY LUẬN THÀNH CÔNG!",
@@ -522,6 +585,7 @@ class ComTam6NightsGame:
                     f"Tiến trình lập hồ sơ chuyên án đã tiến thêm một bước lớn!",
                     parent=mm_win
                 )
+                self.check_achievements()
                 self.update_stats()
                 mm_win.destroy()
             else:
@@ -628,6 +692,9 @@ class ComTam6NightsGame:
             recipe_text = "ĐÃ MUA TỐI ĐA"
 
         items = [
+            ("Bộ Bàn Ghế Gỗ Sưa", "Tăng thêm 10% tỷ lệ Khách VIP và bo thêm $10 mỗi phần ăn.", 200, self.buy_wooden_tables, "has_wooden_tables"),
+            ("Quạt Trần Công Nghiệp", "Mỗi lần phục vụ đúng món giúp giảm thêm 2% Độ nghi ngờ.", 160, self.buy_ceiling_fan, "has_ceiling_fan"),
+            ("Cửa Sắt Cuốn Cường Lực", "Giảm 30% Độ nghi ngờ bị phạt khi chọn sai đối thoại hoặc tra hỏi.", 220, self.buy_iron_door, "has_iron_door"),
             ("Mèo Chiêu Tài", "Tăng 35% tỷ lệ Khách VIP (từ 10% -> 45%). Phục vụ đúng món bo thêm $25.", 220, self.buy_meo_chieu_tai, "has_meo_chieu_tai"),
             ("Biển Hiệu Cơm Tấm VIP", "Tăng thêm 15% tỷ lệ xuất hiện Khách VIP.", 180, self.buy_bien_hieu_vip, "has_bien_hieu_vip"),
             ("Dao Bếp Cao Cấp", "Làm đúng món bo thêm $25 thưởng kỹ năng làm bếp.", 160, self.buy_special_knife, "has_special_knife"),
@@ -688,36 +755,69 @@ class ComTam6NightsGame:
         btn_next = self.make_button(outer, f"BẮT ĐẦU ĐÊM {self.night} ->", self.start_next_night, width=28, height=2, bg="#167c63")
         btn_next.pack(pady=10)
 
+    def buy_wooden_tables(self):
+        if self.money >= 200:
+            self.money -= 200; self.has_wooden_tables = True
+            messagebox.showinfo("Cửa hàng", "Đã mua Bàn Ghế Gỗ Sưa!\nTăng 10% tỷ lệ Khách VIP và bo thêm $10 mỗi phần ăn.")
+            self.check_achievements()
+            self.build_shop_ui()
+
+    def buy_ceiling_fan(self):
+        if self.money >= 160:
+            self.money -= 160; self.has_ceiling_fan = True
+            messagebox.showinfo("Cửa hàng", "Đã lắp Quạt Trần Công Nghiệp!\nPhục vụ đúng món giúp giảm thêm 2% Độ nghi ngờ.")
+            self.check_achievements()
+            self.build_shop_ui()
+
+    def buy_iron_door(self):
+        if self.money >= 220:
+            self.money -= 220; self.has_iron_door = True
+            messagebox.showinfo("Cửa hàng", "Đã lắp Cửa Sắt Cuốn Cường Lực!\nGiảm 30% Độ nghi ngờ bị phạt khi chọn sai đối thoại.")
+            self.check_achievements()
+            self.build_shop_ui()
+
     def buy_meo_chieu_tai(self):
         if self.money >= 220:
             self.money -= 220; self.has_meo_chieu_tai = True
             messagebox.showinfo("Cửa hàng", "Đã mua Mèo Chiêu Tài!\nTỷ lệ Khách VIP tăng thêm +35% và bo thêm $25 khi phục vụ đúng món.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_bien_hieu_vip(self):
         if self.money >= 180:
             self.money -= 180; self.has_bien_hieu_vip = True
             messagebox.showinfo("Cửa hàng", "Đã mua Biển Hiệu Cơm Tấm VIP!\nTỷ lệ xuất hiện Khách VIP tăng thêm +15%.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_special_knife(self):
         if self.money >= 160:
             self.money -= 160; self.has_special_knife = True
             messagebox.showinfo("Cửa hàng", "Đã mua Dao Bếp Cao Cấp!\nPhục vụ đúng món được bo thêm $25.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_speaker(self):
         if self.money >= 150:
             self.money -= 150; self.has_speaker = True
             messagebox.showinfo("Cửa hàng", "Đã mua Loa Quảng Cáo Mini!\nTăng hiệu quả giảm độ nghi ngờ khi phục vụ đúng món.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_radio_detector(self):
         if self.money >= 250:
             self.money -= 250; self.has_radio_detector = True
             messagebox.showinfo("Cửa hàng", "Đã mua Radio Rà Sóng!\nBáo động ngay nếu đêm nay Cảnh sát bị giăng bẫy ngược.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_light(self):
         if self.money >= 120: 
             self.money -= 120; self.has_light = True
             messagebox.showinfo("Cửa hàng", "Đã mua Bóng đèn công suất lớn!\nKhông còn sợ sự cố cúp điện Đêm 3.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_recipe(self):
         if self.recipe_level == 0:
             if self.money >= 150:
@@ -725,6 +825,7 @@ class ComTam6NightsGame:
                 self.recipe_level = 1
                 self.serve_reward = 65
                 messagebox.showinfo("Cửa hàng", "Đã nâng cấp Nước Mắm Bí Truyền Cấp 1!\nDoanh thu đĩa cơm tăng từ $45 -> $65.")
+                self.check_achievements()
                 self.build_shop_ui()
             else:
                 messagebox.showwarning("Cửa hàng", "Bạn không đủ $150 để nâng cấp!")
@@ -734,6 +835,7 @@ class ComTam6NightsGame:
                 self.recipe_level = 2
                 self.serve_reward = 70
                 messagebox.showinfo("Cửa hàng", "Đã nâng cấp Nước Mắm Bí Truyền Cấp 2!\nDoanh thu đĩa cơm tăng từ $65 -> $70.")
+                self.check_achievements()
                 self.build_shop_ui()
             else:
                 messagebox.showwarning("Cửa hàng", "Bạn không đủ $200 để nâng cấp!")
@@ -743,49 +845,67 @@ class ComTam6NightsGame:
                 self.recipe_level = 3
                 self.serve_reward = 90
                 messagebox.showinfo("Cửa hàng", "Đã nâng cấp Nước Mắm Bí Truyền Cấp 3 (MAX)!\nDoanh thu đĩa cơm tăng từ $70 -> $90.")
+                self.check_achievements()
                 self.build_shop_ui()
             else:
                 messagebox.showwarning("Cửa hàng", "Bạn không đủ $300 để nâng cấp!")
+
     def buy_armor(self):
         if self.money >= 250: 
-            self.money -= 250; self.has_armor = True
+            self.money -= 250; self.has_armor = True; self.bought_armor_ever = True
             messagebox.showinfo("Cửa hàng", "Đã mua Áo giáp chống đạn!\nBảo vệ bạn 1 mạng khi Nghi ngờ chạm 100%.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_air_filter(self):
         if self.money >= 180: 
             self.money -= 180; self.has_air_filter = True; self.suspicion = max(0, self.suspicion - 15)
             messagebox.showinfo("Cửa hàng", "Đã mua Máy lọc không khí ngầm!\nLập tức giảm 15% Độ nghi ngờ.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_camera(self):
         if self.money >= 220: 
             self.money -= 220; self.has_camera = True
             messagebox.showinfo("Cửa hàng", "Đã lắp Camera ngụy trang mini!\nGiảm một nửa hình phạt khi phục vụ sai món.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_compartment_upgrade(self):
         if self.money >= 180:
             self.money -= 180; self.has_compartment_upgrade = True; self.max_compartment = 4
             messagebox.showinfo("Cửa hàng", "Đã nâng cấp Khoang bí mật!\nSức chứa tang vật tăng lên tối đa 4 gói.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_jammer(self):
         if self.money >= 200:
             self.money -= 200; self.has_jammer = True
             messagebox.showinfo("Cửa hàng", "Đã trang bị Phá sóng mini!\nAn toàn tuyệt đối khi từ chối nhận hàng ngầm.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_fake_docs(self):
         if self.money >= 200:
             self.money -= 200; self.has_fake_docs = True
             messagebox.showinfo("Cửa hàng", "Đã mua Tài liệu ngụy tạo!\nTự động trừ 10% Độ nghi ngờ ở đầu mỗi đêm.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_magnifier(self):
         if self.money >= 280:
             self.money -= 280; self.has_magnifier = True
             messagebox.showinfo("Cửa hàng", "Đã mua Kính lúp thám tử!\nTăng thời gian giải mã Kẻ Chỉ Điểm lên 45s.")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_vip_license(self):
         if self.money >= 350:
             self.money -= 350; self.has_vip_license = True
             messagebox.showinfo("Cửa hàng", "Đã mua Giấy phép kinh doanh VIP!\nGiờ đây mọi hình phạt khi sai món đều giảm 50%!")
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_radio_scanner(self):
         if self.money >= 400:
             if self.clues >= self.max_clues:
@@ -795,11 +915,14 @@ class ComTam6NightsGame:
             new_clue = self.add_clue()
             msg = f"Đã mua Máy quét vô tuyến!\nLập tức thu được thông tin quan trọng:\n+ {new_clue}"
             messagebox.showinfo("Tình báo cao cấp", msg)
+            self.check_achievements()
             self.build_shop_ui()
+
     def buy_fake_tape(self):
         if self.money >= 280:
             self.money -= 280; self.has_fake_tape = True
             messagebox.showinfo("Cửa hàng", "Đã mua Băng ghi âm giả mạo!\nTừ giờ có thể tuồn hàng chợ đen mà không sợ bị lộ tẩy.")
+            self.check_achievements()
             self.build_shop_ui()
 
     def start_next_night(self):
@@ -836,6 +959,8 @@ class ComTam6NightsGame:
             vip_chance += 0.35
         if getattr(self, "has_bien_hieu_vip", False):
             vip_chance += 0.15
+        if getattr(self, "has_wooden_tables", False):
+            vip_chance += 0.10
 
         self.is_vip_customer = (random.random() < vip_chance)
 
@@ -919,6 +1044,7 @@ class ComTam6NightsGame:
                     self.suspicion += penalty_susp
                     self.unlocked_endings.add("Ending 7")
                     self.save_endings()
+                    self.check_achievements()
                     messagebox.showerror(
                         "🚨 BẪY NGƯỢC CẢNH SÁT!",
                         f"Đồn cảnh sát đêm nay đã bị băng nhóm chiếm quyền!\n"
@@ -970,6 +1096,7 @@ class ComTam6NightsGame:
     def trigger_ending(self, ending_code, title, description, is_win=False):
         self.unlocked_endings.add(ending_code)
         self.save_endings()
+        self.check_achievements()
         
         if is_win:
             messagebox.showinfo(f"KẾT CỤC: {title}", description)
@@ -980,6 +1107,7 @@ class ComTam6NightsGame:
         self.build_main_menu()
 
     def trigger_next_day_logic(self):
+        self.check_achievements()
         if self.night < 6:
             messagebox.showinfo("Hoàn thành ca đêm", f"Đêm {self.night} kết thúc.\nChuyển sang nhiệm vụ ban ngày tiếp theo.")
             self.build_day_mission_ui(self.night)
@@ -1075,6 +1203,7 @@ class ComTam6NightsGame:
         self.night += 1
         self.orders_completed_tonight = 0
         self.hour, self.minute = 20, 0
+        self.check_achievements()
         self.build_shop_ui()
 
     def build_day_mission_ui(self, day):
@@ -1217,6 +1346,12 @@ class ComTam6NightsGame:
 
             self.make_button(btn_frame, "CHỌN", cmd, width=10, bg="#2b6cb0").pack(side="right", padx=10)
 
+    def apply_susp_penalty(self, val):
+        if getattr(self, "has_iron_door", False):
+            val = max(1, int(val * 0.7))
+        self.suspicion += val
+        return val
+
     def choose_dialogue(self, win, option):
         win.destroy()
         self.talked_current_customer = True
@@ -1232,8 +1367,8 @@ class ComTam6NightsGame:
                 else:
                     msg = "Khách hàng trò chuyện bình thường không có thông tin mới."
             else:
-                self.suspicion += 15
-                msg = "Lời dò hỏi quá lộ liễu khiến khách nghi ngờ!\n\n(Độ nghi ngờ tăng 15%)"
+                p = self.apply_susp_penalty(15)
+                msg = f"Lời dò hỏi quá lộ liễu khiến khách nghi ngờ!\n\n(Độ nghi ngờ tăng {p}%)"
         elif option == 3:
             if self.money >= 15:
                 self.money -= 15
@@ -1272,11 +1407,12 @@ class ComTam6NightsGame:
             self.money += 50
             msg = "Thiếu úy Nam ngầm tiếp viện kinh phí trinh sát. (+ $50)"
         elif option == 303:
-            self.suspicion += 10
-            msg = "Thái độ lúng túng làm công an khu vực chú ý. (Độ nghi ngờ +10%)"
+            p = self.apply_susp_penalty(10)
+            msg = f"Thái độ lúng túng làm công an khu vực chú ý. (Độ nghi ngờ +{p}%)"
 
         self.lbl_dialog.config(text=f"[KẾT QUẢ ĐỐI THOẠI]\n\n{msg}")
         self.check_game_over()
+        self.check_achievements()
         self.update_stats()
 
     def action_investigate(self):
@@ -1297,6 +1433,7 @@ class ComTam6NightsGame:
 
         if self.check_game_over():
             return
+        self.check_achievements()
         self.update_stats()
 
     def action_take_smuggled_package(self):
@@ -1324,6 +1461,7 @@ class ComTam6NightsGame:
             "Đã cất giấu thành công",
             f"Bạn đã lén giấu gói hàng ngầm vào khoang gầm bàn.\n• Nhận trước: +$40 tiền công\n• Khoang bí mật: [{len(self.hidden_compartment)}/{self.max_compartment}]"
         )
+        self.check_achievements()
         self.update_stats()
 
     def add_ing(self, item):
@@ -1370,6 +1508,10 @@ class ComTam6NightsGame:
                 total_earned += 25
                 bonus_notes.append("+$25 Mèo chiêu tài")
 
+            if getattr(self, "has_wooden_tables", False):
+                total_earned += 10
+                bonus_notes.append("+$10 Bàn ghế gỗ sưa")
+
             if self.is_vip_customer:
                 vip_bonus = 35
                 total_earned += vip_bonus
@@ -1377,7 +1519,7 @@ class ComTam6NightsGame:
 
             self.money += total_earned
             
-            susp_reduce = 8 + (4 if self.has_speaker else 0)
+            susp_reduce = 8 + (4 if self.has_speaker else 0) + (2 if getattr(self, "has_ceiling_fan", False) else 0)
             self.suspicion = max(0, self.suspicion - susp_reduce)
             
             self.orders_completed_tonight += 1
@@ -1398,6 +1540,8 @@ class ComTam6NightsGame:
 
         if self.check_game_over():
             return
+
+        self.check_achievements()
 
         if self.orders_completed_tonight >= 5:
             self.check_night_smuggler_dropoff()
@@ -1525,7 +1669,7 @@ class ComTam6NightsGame:
             self.canvas_view.create_rectangle(0, 0, w, h, fill="#000000", stipple="gray50")
             self.canvas_view.create_text(cx, h - 18, text="⚡ Cúp điện! (Cần Bóng đèn công suất lớn)", fill=self.GOLD, font=("Segoe UI", 9, "bold"))
 
-        self.canvas_view.create_text(18, 15, anchor="nw", text="QUẦY BÁN - CREATOR BY: Q-HOUSETEAM", fill="#8d98a7", font=("Segoe UI", 9, "bold"))
+        self.canvas_view.create_text(18, 15, anchor="nw", text="QUẦY BÁN - CREATOR BY: Q-HOUSETEAM (v1.1.0)", fill="#8d98a7", font=("Segoe UI", 9, "bold"))
 
 if __name__ == "__main__":
     root = tk.Tk()
