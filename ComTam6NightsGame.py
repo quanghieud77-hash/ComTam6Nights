@@ -18,7 +18,7 @@ class ComTam6NightsGame:
 
     def __init__(self, root):
         self.root = root
-        self.root.title("ComTam6NightsGame v1.1.0")
+        self.root.title("ComTam6NightsGame ")
         self.root.configure(bg=self.BG)
         self.root.minsize(980, 760)
         self.center_window(1100, 800)
@@ -394,7 +394,7 @@ class ComTam6NightsGame:
         intro_text = (
             "Sương mù bao trùm con hẻm nhỏ. Dưới lớp tạp dề, bạn đảm nhận chiến dịch 6 đêm "
             "triệt phá đường dây tội phạm của Kiều Lương Tâm.\n\n"
-            "TÍNH NÂNG MỚI v1.1.0: Trang bị Quán Cơm, SƠ ĐỒ TƯ DUY và hệ thống THÀNH TỰU HUY HIỆU đã sẵn sàng!"
+            "TÍNH NĂNG MỚI : Trang bị Quán Cơm, SƠ ĐỒ TƯ DUY và hệ thống THÀNH TỰU HUY HIỆU đã sẵn sàng!"
         )
         messagebox.showinfo("Lời khởi đầu", intro_text)
         self.next_customer()
@@ -411,7 +411,7 @@ class ComTam6NightsGame:
         top_row = tk.Frame(header, bg=self.PANEL)
         top_row.pack(fill="x", padx=15, pady=(8, 2))
 
-        self.lbl_title = tk.Label(top_row, text="ComTam6NightsGame v1.1.0 (Q-HouseTeam)", font=("Segoe UI", 14, "bold"), fg=self.GOLD, bg=self.PANEL)
+        self.lbl_title = tk.Label(top_row, text="ComTam6NightsGame(Q-HouseTeam)", font=("Segoe UI", 14, "bold"), fg=self.GOLD, bg=self.PANEL)
         self.lbl_title.pack(side="left")
 
         self.lbl_stats = tk.Label(top_row, text="", font=("Segoe UI", 10, "bold"), fg=self.CYAN, bg=self.PANEL)
